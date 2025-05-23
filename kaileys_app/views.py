@@ -13,6 +13,22 @@ from .serializers import (
 )
 
 
+from rest_framework.reverse import reverse
+
+class APIRootView(APIView):
+    """
+    The API root listing all available endpoints.
+    """
+    def get(self, request, format=None):
+        return Response({
+            'verify-access': reverse('verify-access', request=request),
+            'check-access': reverse('check-access', request=request),
+            'organizations': reverse('organizations', request=request),
+            'courses': reverse('courses', request=request),
+            'trainees': reverse('trainees', request=request),
+        })
+
+
 class VerifyAccessCodeView(APIView):
     """
     Trainee submits phone number and access code.
