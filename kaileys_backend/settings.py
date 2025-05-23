@@ -38,7 +38,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework',
-    'kaeileys_app',  # Your app name
+    'kaileys_app',  # Your app name
 ]
 
 MIDDLEWARE = [
