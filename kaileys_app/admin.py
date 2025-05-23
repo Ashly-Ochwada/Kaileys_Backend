@@ -16,6 +16,7 @@ class AccessCodeAdmin(admin.ModelAdmin):
     list_display = ('code', 'course', 'organization', 'created_at', 'expires_at')
     list_filter = ('organization', 'course')
     search_fields = ('code',)
+    readonly_fields = ('code',)
 
 @admin.register(Trainee)
 class TraineeAdmin(admin.ModelAdmin):
