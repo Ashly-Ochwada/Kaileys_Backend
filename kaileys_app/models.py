@@ -10,8 +10,19 @@ class Organization(models.Model):
     name = models.CharField(max_length=255)
     country = models.CharField(max_length=100)
 
+from django.db import models
+
 class Course(models.Model):
-    name = models.CharField(max_length=255)
+    COURSE_CHOICES = [
+        ("fire_safety", "FIRE_SAFETY_TRAINING_KAILEYS"),
+        ("first_aid", "FIRST_AID"),
+        ("safety_committee", "SAFETY_AND_HEALTH_COMMITTEE_TRAINING"),
+    ]
+
+    name = models.CharField(max_length=100, choices=COURSE_CHOICES, unique=True)
+
+    def __str__(self):
+        return dict(self.COURSE_CHOICES).get(self.name, self.name)
 
 class AccessCode(models.Model):
     code = models.CharField(max_length=10)
