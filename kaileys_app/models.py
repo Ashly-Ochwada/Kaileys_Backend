@@ -12,6 +12,9 @@ class Organization(models.Model):
     name = models.CharField(max_length=255)
     country = models.CharField(max_length=100)
 
+    def __str__(self):
+        return f"{self.name} ({self.country})"
+
 from django.db import models
 
 class Course(models.Model):
@@ -41,14 +44,23 @@ class AccessCode(models.Model):
             self.code = generate_unique_code()
         super().save(*args, **kwargs)
 
+    def __str__(self):
+        return f"{self.code} for {self.course} ({self.organization})"
+
 
 class Trainee(models.Model):
     phone_number = models.CharField(max_length=20)
     organization = models.ForeignKey(Organization, on_delete=models.CASCADE)
     courses = models.ManyToManyField(Course, through='AccessGrant')
 
+    def __str__(self):
+        return f"{self.phone_number} ({self.organization})"
+
 class AccessGrant(models.Model):
     trainee = models.ForeignKey(Trainee, on_delete=models.CASCADE)
     course = models.ForeignKey(Course, on_delete=models.CASCADE)
     access_granted_at = models.DateTimeField(auto_now_add=True)
     expires_at = models.DateTimeField(default=default_expiry)
+
+    def __str__(self):
+        return f"Access for {self.trainee.phone_number} to {self.course}"
