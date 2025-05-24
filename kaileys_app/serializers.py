@@ -8,7 +8,7 @@ class OrganizationSerializer(serializers.ModelSerializer):
 
 
 class CourseSerializer(serializers.ModelSerializer):
-    name = serializers.ChoiceField(choices=Course.COURSE_CHOICES)
+    name = serializers.ChoiceField(choices=Course.CourseChoices.choices)
 
     class Meta:
         model = Course

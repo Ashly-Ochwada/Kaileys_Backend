@@ -35,22 +35,35 @@ class CourseAdmin(admin.ModelAdmin):
 class AccessCodeAdmin(admin.ModelAdmin):
     """
     Admin configuration for the AccessCode model.
-    Customizes the list view, filters, search functionality, read-only fields, and pagination.
+    Enhances usability by showing key fields, enabling filters and search, 
+    and displaying whether the access code is still valid.
     """
-    # Fields to display in the list view
-    list_display = ('code', 'course', 'organization', 'created_at', 'expires_at')
-    
-    # Filters to enable in the sidebar
+
+    # Fields to display in the list view of the admin
+    list_display = ('code', 'course', 'organization', 'created_at', 'expires_at', 'is_valid')
+
+    # Sidebar filters for narrowing down entries
     list_filter = ('organization', 'course', 'created_at', 'expires_at')
-    
-    # Fields to enable search functionality
+
+    # Searchable fields (useful when looking for a specific code)
     search_fields = ('code',)
-    
-    # Fields that are read-only in the admin (code is auto-generated)
+
+    # Prevent editing of auto-generated code in the admin form
     readonly_fields = ('code',)
-    
-    # Number of items to display per page in the list view
+
+    # Pagination: number of entries per page
     list_per_page = 25
+
+    # Custom method to display whether the access code is still valid
+    def is_valid(self, obj):
+        return obj.is_valid  # uses the @property on the model
+
+    # Display as a boolean (checkmark) in the admin list view
+    is_valid.boolean = True
+
+    # Custom column header name
+    is_valid.short_description = "Valid?"
+
 
 @admin.register(Trainee)
 class TraineeAdmin(admin.ModelAdmin):

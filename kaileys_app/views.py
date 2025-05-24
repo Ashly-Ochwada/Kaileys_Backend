@@ -56,7 +56,7 @@ class VerifyAccessCodeView(APIView):
         except AccessCode.DoesNotExist:
             return Response({"error": "Invalid access code."}, status=status.HTTP_404_NOT_FOUND)
 
-        if not access_code_obj.is_valid():
+        if not access_code_obj.is_valid:
             return Response({"error": "Access code has expired."}, status=status.HTTP_403_FORBIDDEN)
 
         # Find or create the trainee
