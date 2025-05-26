@@ -18,6 +18,7 @@ from django.contrib import admin
 from django.urls import path, include
 
 urlpatterns = [
+    path('', lambda request: JsonResponse({'status': 'Kaileys backend is live ✅'})),
     path('admin/', admin.site.urls),
     path('api/', include('kaileys_app.urls')),  
 ]
