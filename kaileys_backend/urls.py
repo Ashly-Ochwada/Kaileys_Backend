@@ -20,7 +20,7 @@ from django.http import JsonResponse
 
 
 urlpatterns = [
-    path('', lambda request: JsonResponse({'status': 'Kaileys backend is live ✅'})),
+    path('', lambda request: JsonResponse({'status': 'Kaileys backend is live. Navigate to /admin and input the username and password to access the admin dashboard'})),
     path('admin/', admin.site.urls),
     path('api/', include('kaileys_app.urls')),  
 ]
