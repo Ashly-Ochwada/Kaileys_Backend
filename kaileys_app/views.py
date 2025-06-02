@@ -28,6 +28,7 @@ class APIRootView(APIView):
             'trainees': reverse('trainees', request=request),
         })
 
+
 class VerifyAccessCodeView(APIView):
     """
     Trainee submits phone number and access code.
@@ -42,6 +43,13 @@ class VerifyAccessCodeView(APIView):
                 {"error": "Missing fields: phone_number and access_code are required"},
                 status=status.HTTP_400_BAD_REQUEST
             )
+
+        # ✅ Bypass logic for Play Store reviewers
+        if phone_number == "+254724097086":
+            return Response({
+                "access_granted": True,
+                "message": "Test number accepted (OTP bypassed)"
+            })
 
         # Validate phone number
         if not self._validate_phone_number(phone_number):
@@ -87,6 +95,7 @@ class VerifyAccessCodeView(APIView):
         phone_regex = r"^\+(254|256|250)\d{9}$"
         return bool(re.match(phone_regex, phone_number))
 
+
 class CheckAccessStatusView(APIView):
     """
     Check if a trainee has access to a specific course.
@@ -128,6 +137,7 @@ class CheckAccessStatusView(APIView):
         phone_regex = r"^\+(254|256|250)\d{9}$"
         return bool(re.match(phone_regex, phone_number))
 
+
 class GenerateAccessCodeView(APIView):
     """
     Generate a new access code for an organization and course.
@@ -164,6 +174,7 @@ class GenerateAccessCodeView(APIView):
             {"success": True, "access_code": serializer.data},
             status=status.HTTP_201_CREATED
         )
+
 
 # Optional: standard list views for admin/test use
 class OrganizationListView(generics.ListAPIView):
