@@ -1,13 +1,10 @@
 from django.db import models
 from django.utils import timezone
 from datetime import timedelta
-from .utils import generate_unique_code
 
-
-# Utility function for default expiry (2 years)
+# Default expiry of 2 years for access grants
 def default_expiry():
     return timezone.now() + timedelta(days=730)
-
 
 class Organization(models.Model):
     name = models.CharField(max_length=255)
@@ -15,7 +12,6 @@ class Organization(models.Model):
 
     def __str__(self):
         return f"{self.name} ({self.country})"
-
 
 class Course(models.Model):
     from django.db.models import TextChoices
@@ -35,27 +31,6 @@ class Course(models.Model):
     def __str__(self):
         return self.get_name_display()
 
-
-class AccessCode(models.Model):
-    code = models.CharField(max_length=10, unique=True, blank=True, db_index=True)
-    course = models.ForeignKey(Course, on_delete=models.CASCADE)
-    organization = models.ForeignKey(Organization, on_delete=models.CASCADE)
-    created_at = models.DateTimeField(auto_now_add=True)
-    expires_at = models.DateTimeField()
-
-    @property
-    def is_valid(self):
-        return timezone.now() < self.expires_at
-
-    def save(self, *args, **kwargs):
-        if not self.code:
-            self.code = generate_unique_code()
-        super().save(*args, **kwargs)
-
-    def __str__(self):
-        return f"{self.code} | {self.course.name} @ {self.organization.name}"
-
-
 class Trainee(models.Model):
     phone_number = models.CharField(max_length=20, db_index=True)
     organization = models.ForeignKey(Organization, on_delete=models.CASCADE)
@@ -66,7 +41,6 @@ class Trainee(models.Model):
 
     def __str__(self):
         return f"{self.phone_number} ({self.organization.name})"
-
 
 class AccessGrant(models.Model):
     trainee = models.ForeignKey(Trainee, on_delete=models.CASCADE)
