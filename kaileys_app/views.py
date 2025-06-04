@@ -19,11 +19,13 @@ class APIRootView(APIView):
     def get(self, request, format=None):
         return Response({
             'verify-access': reverse('verify-access', request=request),
+            'register-trainee': reverse('register-trainee', request=request),  
             'check-access': reverse('check-access', request=request),
             'organizations': reverse('organizations', request=request),
             'courses': reverse('courses', request=request),
             'trainees': reverse('trainees', request=request),
         })
+
 
 
 class VerifyAccessView(APIView):
