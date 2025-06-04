@@ -131,10 +131,10 @@ class CheckAccessStatusView(APIView):
         phone_regex = r"^\+(254|256|250)\d{9}$"
         return bool(re.match(phone_regex, phone_number))
 
-
 class RegisterTraineeView(APIView):
     """
-    Register a new trainee and grant access to the selected course.
+    Register a new trainee, organization, and course if they don't exist.
+    Grant access to the selected course.
     """
 
     def post(self, request):
@@ -152,26 +152,23 @@ class RegisterTraineeView(APIView):
         if not re.match(phone_regex, phone_number):
             return Response({"error": "Invalid phone number format."}, status=400)
 
-        # Look up organization
-        try:
-            organization = Organization.objects.get(name__iexact=organization_name)
-        except Organization.DoesNotExist:
-            return Response({"error": "Organization not found."}, status=404)
+        # Get or create organization
+        organization, _ = Organization.objects.get_or_create(
+            name__iexact=organization_name,
+            defaults={"name": organization_name, "country": "Kenya"}  # or detect/set dynamically
+        )
 
-        # Look up course
-        try:
-            course = Course.objects.get(name=course_name)
-        except Course.DoesNotExist:
-            return Response({"error": "Course not found."}, status=404)
+        # Get or create course
+        course, _ = Course.objects.get_or_create(name=course_name)
 
-        # Check if trainee already exists
+        # Get or create trainee
         trainee, created = Trainee.objects.get_or_create(
             phone_number=phone_number,
             organization=organization,
             defaults={"full_name": full_name}
         )
 
-        # If the trainee already existed but full_name was missing, update it
+        # If the trainee existed but name was missing, update
         if not created and (not trainee.full_name or trainee.full_name.strip() == ""):
             trainee.full_name = full_name
             trainee.save()
@@ -184,6 +181,7 @@ class RegisterTraineeView(APIView):
             "already_granted": AccessGrant.objects.filter(trainee=trainee, course=course).exists(),
             "access_expires_at": grant.expires_at
         })
+
 
 
 # List Views
