@@ -130,6 +130,60 @@ class CheckAccessStatusView(APIView):
         return bool(re.match(phone_regex, phone_number))
 
 
+class RegisterTraineeView(APIView):
+    """
+    Register a new trainee and grant access to the selected course.
+    Expects: full_name, phone_number, organization, course
+    """
+    def post(self, request):
+        full_name = request.data.get('full_name')
+        phone_number = request.data.get('phone_number')
+        organization_name = request.data.get('organization')
+        course_name = request.data.get('course')
+
+        if not full_name or not phone_number or not organization_name or not course_name:
+            return Response(
+                {"error": "All fields (full_name, phone_number, organization, course) are required."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Validate phone number
+        if not self._validate_phone_number(phone_number):
+            return Response(
+                {"error": "Invalid phone number. Must be a valid Kenyan (+254), Ugandan (+256), or Rwandan (+250) number."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        organization, _ = Organization.objects.get_or_create(name=organization_name, defaults={"country": "Unknown"})
+
+        try:
+            course = Course.objects.get(name=course_name)
+        except Course.DoesNotExist:
+            return Response({"error": "Course not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        trainee, created = Trainee.objects.get_or_create(
+            phone_number=phone_number,
+            organization=organization,
+        )
+
+        # Optional: Save full_name if your model has it
+        if hasattr(trainee, 'full_name'):
+            trainee.full_name = full_name
+            trainee.save()
+
+        access, _ = AccessGrant.objects.get_or_create(trainee=trainee, course=course)
+
+        return Response({
+            "access_granted": True,
+            "already_granted": not created,
+            "access_expires_at": access.expires_at
+        })
+
+    def _validate_phone_number(self, phone_number: str) -> bool:
+        phone_regex = r"^\+(254|256|250)\d{9}$"
+        return bool(re.match(phone_regex, phone_number))
+
+
 # List Views
 class OrganizationListView(generics.ListAPIView):
     queryset = Organization.objects.all()

@@ -37,8 +37,8 @@ class TraineeAdmin(admin.ModelAdmin):
     Admin configuration for the Trainee model.
     Customizes the list view, search functionality, and pagination.
     """
-    list_display = ('phone_number', 'organization')
-    search_fields = ('phone_number',)
+    list_display = ('full_name', 'phone_number', 'organization') 
+    search_fields = ('full_name', 'phone_number') 
     list_per_page = 25
     inlines = [AccessGrantInline]
 

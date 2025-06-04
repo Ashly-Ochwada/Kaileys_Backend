@@ -22,6 +22,7 @@ class CourseSerializer(serializers.ModelSerializer):
 
 
 class TraineeSerializer(serializers.ModelSerializer):
+    full_name = serializers.CharField(required=True)  
     organization = OrganizationSerializer(read_only=True)
     organization_id = serializers.PrimaryKeyRelatedField(
         queryset=Organization.objects.all(), source='organization', write_only=True
@@ -29,7 +30,7 @@ class TraineeSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Trainee
-        fields = ['id', 'phone_number', 'organization', 'organization_id']
+        fields = ['id', 'full_name', 'phone_number', 'organization', 'organization_id'] 
 
 
 class AccessGrantSerializer(serializers.ModelSerializer):

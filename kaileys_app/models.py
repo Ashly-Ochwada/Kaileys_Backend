@@ -32,6 +32,7 @@ class Course(models.Model):
         return self.get_name_display()
 
 class Trainee(models.Model):
+    full_name = models.CharField(max_length=255, null=True, blank=True) 
     phone_number = models.CharField(max_length=20, db_index=True)
     organization = models.ForeignKey(Organization, on_delete=models.CASCADE)
     courses = models.ManyToManyField(Course, through='AccessGrant')
@@ -40,7 +41,7 @@ class Trainee(models.Model):
         unique_together = ('phone_number', 'organization')
 
     def __str__(self):
-        return f"{self.phone_number} ({self.organization.name})"
+        return f"{self.full_name} ({self.phone_number}, {self.organization.name})"
 
 class AccessGrant(models.Model):
     trainee = models.ForeignKey(Trainee, on_delete=models.CASCADE)
