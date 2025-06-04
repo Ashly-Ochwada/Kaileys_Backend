@@ -141,47 +141,36 @@ class RegisterTraineeView(APIView):
         organization_name = request.data.get('organization')
         course_name = request.data.get('course')
 
-        if not full_name or not phone_number or not organization_name or not course_name:
-            return Response(
-                {"error": "All fields (full_name, phone_number, organization, course) are required."},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+        if not all([phone_number, full_name, organization_name, course_name]):
+            return Response({"error": "All fields are required."}, status=400)
 
-        # Validate phone number
-        if not self._validate_phone_number(phone_number):
-            return Response(
-                {"error": "Invalid phone number. Must be a valid Kenyan (+254), Ugandan (+256), or Rwandan (+250) number."},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
-        organization, _ = Organization.objects.get_or_create(name=organization_name, defaults={"country": "Unknown"})
+        # Validate phone
+        phone_regex = r"^\+(254|256|250)\d{9}$"
+        if not re.match(phone_regex, phone_number):
+            return Response({"error": "Invalid phone number format."}, status=400)
 
         try:
-            course = Course.objects.get(name=course_name)
-        except Course.DoesNotExist:
-            return Response({"error": "Course not found."}, status=status.HTTP_404_NOT_FOUND)
+            org = Organization.objects.get(name__iexact=organization_name)
+        except Organization.DoesNotExist:
+            return Response({"error": "Organization not found."}, status=404)
 
-        trainee, created = Trainee.objects.get_or_create(
+        course = Course.objects.filter(name=course_name).first()
+        if not course:
+            return Response({"error": "Course not found."}, status=404)
+
+        trainee, _ = Trainee.objects.get_or_create(
             phone_number=phone_number,
-            organization=organization,
+            organization=org,
+            defaults={'full_name': full_name}
         )
 
-        # Optional: Save full_name if your model has it
-        if hasattr(trainee, 'full_name'):
-            trainee.full_name = full_name
-            trainee.save()
-
-        access, _ = AccessGrant.objects.get_or_create(trainee=trainee, course=course)
+        grant, _ = AccessGrant.objects.get_or_create(trainee=trainee, course=course)
 
         return Response({
             "access_granted": True,
-            "already_granted": not created,
-            "access_expires_at": access.expires_at
+            "already_granted": AccessGrant.objects.filter(trainee=trainee, course=course).exists(),
+            "access_expires_at": grant.expires_at
         })
-
-    def _validate_phone_number(self, phone_number: str) -> bool:
-        phone_regex = r"^\+(254|256|250)\d{9}$"
-        return bool(re.match(phone_regex, phone_number))
 
 
 # List Views
