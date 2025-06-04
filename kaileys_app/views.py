@@ -135,37 +135,48 @@ class CheckAccessStatusView(APIView):
 class RegisterTraineeView(APIView):
     """
     Register a new trainee and grant access to the selected course.
-    Expects: full_name, phone_number, organization, course
     """
-    def post(self, request):
-        full_name = request.data.get('full_name')
-        phone_number = request.data.get('phone_number')
-        organization_name = request.data.get('organization')
-        course_name = request.data.get('course')
 
-        if not all([phone_number, full_name, organization_name, course_name]):
+    def post(self, request):
+        full_name = request.data.get("full_name")
+        phone_number = request.data.get("phone_number")
+        organization_name = request.data.get("organization")
+        course_name = request.data.get("course")
+
+        # Validate required fields
+        if not all([full_name, phone_number, organization_name, course_name]):
             return Response({"error": "All fields are required."}, status=400)
 
-        # Validate phone
+        # Validate phone format
         phone_regex = r"^\+(254|256|250)\d{9}$"
         if not re.match(phone_regex, phone_number):
             return Response({"error": "Invalid phone number format."}, status=400)
 
+        # Look up organization
         try:
-            org = Organization.objects.get(name__iexact=organization_name)
+            organization = Organization.objects.get(name__iexact=organization_name)
         except Organization.DoesNotExist:
             return Response({"error": "Organization not found."}, status=404)
 
-        course = Course.objects.filter(name=course_name).first()
-        if not course:
+        # Look up course
+        try:
+            course = Course.objects.get(name=course_name)
+        except Course.DoesNotExist:
             return Response({"error": "Course not found."}, status=404)
 
-        trainee, _ = Trainee.objects.get_or_create(
+        # Check if trainee already exists
+        trainee, created = Trainee.objects.get_or_create(
             phone_number=phone_number,
-            organization=org,
-            defaults={'full_name': full_name}
+            organization=organization,
+            defaults={"full_name": full_name}
         )
 
+        # If the trainee already existed but full_name was missing, update it
+        if not created and (not trainee.full_name or trainee.full_name.strip() == ""):
+            trainee.full_name = full_name
+            trainee.save()
+
+        # Grant access if not already granted
         grant, _ = AccessGrant.objects.get_or_create(trainee=trainee, course=course)
 
         return Response({
