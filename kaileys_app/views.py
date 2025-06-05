@@ -30,7 +30,6 @@ class APIRootView(APIView):
             'trainees': reverse('trainees', request=request),
         })
 
-
 class VerifyAccessView(APIView):
     """
     Verify if a registered trainee has access to a course.
@@ -105,7 +104,7 @@ class VerifyAccessView(APIView):
 
 class RegisterTraineeView(APIView):
     """
-    Register a new trainee and grant access to a course.
+    Register a new trainee and grant access to a course, pending admin approval.
     """
     def post(self, request):
         full_name = request.data.get("full_name")
@@ -136,13 +135,19 @@ class RegisterTraineeView(APIView):
             trainee.full_name = full_name
             trainee.save()
 
-        grant, _ = AccessGrant.objects.get_or_create(trainee=trainee, course=course)
+        grant, grant_created = AccessGrant.objects.get_or_create(
+            trainee=trainee,
+            course=course,
+            defaults={"is_approved": False}  # Default to unapproved
+        )
 
         return Response({
-            "access_granted": True,
-            "already_granted": not _,
-            "access_expires_at": grant.expires_at
+            "access_granted": grant.is_approved,
+            "already_granted": not grant_created,
+            "access_expires_at": grant.expires_at,
+            "approval_status": "approved" if grant.is_approved else "pending"
         })
+
 
 
 class CheckAccessStatusView(APIView):
