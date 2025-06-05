@@ -12,14 +12,18 @@ from .serializers import (
 )
 from rest_framework.reverse import reverse
 
+
+# ✅ Shared utility
+def validate_phone_number(phone_number: str) -> bool:
+    phone_regex = r"^\+(254|256|250)\d{9}$"
+    return bool(re.match(phone_regex, phone_number))
+
+
 class APIRootView(APIView):
-    """
-    The API root listing all available endpoints.
-    """
     def get(self, request, format=None):
         return Response({
             'verify-access': reverse('verify-access', request=request),
-            'register-trainee': reverse('register-trainee', request=request),  
+            'register-trainee': reverse('register-trainee', request=request),
             'check-access': reverse('check-access', request=request),
             'organizations': reverse('organizations', request=request),
             'courses': reverse('courses', request=request),
@@ -27,11 +31,10 @@ class APIRootView(APIView):
         })
 
 
-
 class VerifyAccessView(APIView):
     """
-    Trainee submits phone number and organization name.
-    If valid, grant access to the specified course with a 2-year expiry.
+    Verify if a registered trainee has access to a course.
+    No new data should be created here.
     """
     def post(self, request):
         phone_number = request.data.get('phone_number')
@@ -50,21 +53,21 @@ class VerifyAccessView(APIView):
                 "message": "Test number accepted (bypass active)"
             })
 
-        if not self._validate_phone_number(phone_number):
+        if not validate_phone_number(phone_number):
             return Response(
-                {"error": "Invalid phone number."},
+                {"access_granted": False, "error": "Invalid phone number."},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
         try:
             organization = Organization.objects.get(name__iexact=organization_name)
         except Organization.DoesNotExist:
-            return Response({"error": "Organization not found."}, status=status.HTTP_404_NOT_FOUND)
+            return Response({"access_granted": False, "error": "Organization not found."}, status=status.HTTP_404_NOT_FOUND)
 
         try:
             course = Course.objects.get(name=course_name)
         except Course.DoesNotExist:
-            return Response({"error": "Course not found."}, status=status.HTTP_404_NOT_FOUND)
+            return Response({"access_granted": False, "error": "Course not found."}, status=status.HTTP_404_NOT_FOUND)
 
         try:
             trainee = Trainee.objects.get(phone_number=phone_number, organization=organization)
@@ -94,11 +97,49 @@ class VerifyAccessView(APIView):
         })
 
 
+class RegisterTraineeView(APIView):
+    """
+    Register a new trainee and grant access to a course.
+    """
+    def post(self, request):
+        full_name = request.data.get("full_name")
+        phone_number = request.data.get("phone_number")
+        organization_name = request.data.get("organization")
+        course_name = request.data.get("course")
+
+        if not all([full_name, phone_number, organization_name, course_name]):
+            return Response({"error": "All fields are required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        if not validate_phone_number(phone_number):
+            return Response({"error": "Invalid phone number format."}, status=status.HTTP_400_BAD_REQUEST)
+
+        organization, _ = Organization.objects.get_or_create(
+            name__iexact=organization_name,
+            defaults={"name": organization_name, "country": "Kenya"}
+        )
+
+        course, _ = Course.objects.get_or_create(name=course_name)
+
+        trainee, created = Trainee.objects.get_or_create(
+            phone_number=phone_number,
+            organization=organization,
+            defaults={"full_name": full_name}
+        )
+
+        if not created and (not trainee.full_name or trainee.full_name.strip() == ""):
+            trainee.full_name = full_name
+            trainee.save()
+
+        grant, _ = AccessGrant.objects.get_or_create(trainee=trainee, course=course)
+
+        return Response({
+            "access_granted": True,
+            "already_granted": not _,
+            "access_expires_at": grant.expires_at
+        })
+
+
 class CheckAccessStatusView(APIView):
-    """
-    Check if a trainee has access to a specific course.
-    Uses GET with query parameters: phone_number and course_id.
-    """
     def get(self, request):
         phone_number = request.query_params.get('phone_number')
         course_id = request.query_params.get('course_id')
@@ -109,7 +150,7 @@ class CheckAccessStatusView(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        if not self._validate_phone_number(phone_number):
+        if not validate_phone_number(phone_number):
             return Response(
                 {"access": False, "error": "Invalid phone number."},
                 status=status.HTTP_400_BAD_REQUEST
@@ -129,64 +170,8 @@ class CheckAccessStatusView(APIView):
         except AccessGrant.DoesNotExist:
             return Response({"access": False, "error": "No access grant found."})
 
-    def _validate_phone_number(self, phone_number: str) -> bool:
-        phone_regex = r"^\+(254|256|250)\d{9}$"
-        return bool(re.match(phone_regex, phone_number))
 
-class RegisterTraineeView(APIView):
-    """
-    Register a new trainee, organization, and course if they don't exist.
-    Grant access to the selected course.
-    """
-
-    def post(self, request):
-        full_name = request.data.get("full_name")
-        phone_number = request.data.get("phone_number")
-        organization_name = request.data.get("organization")
-        course_name = request.data.get("course")
-
-        # Validate required fields
-        if not all([full_name, phone_number, organization_name, course_name]):
-            return Response({"error": "All fields are required."}, status=400)
-
-        # Validate phone format
-        phone_regex = r"^\+(254|256|250)\d{9}$"
-        if not re.match(phone_regex, phone_number):
-            return Response({"error": "Invalid phone number format."}, status=400)
-
-        # Get or create organization
-        organization, _ = Organization.objects.get_or_create(
-            name__iexact=organization_name,
-            defaults={"name": organization_name, "country": "Kenya"}  # or detect/set dynamically
-        )
-
-        # Get or create course
-        course, _ = Course.objects.get_or_create(name=course_name)
-
-        # Get or create trainee
-        trainee, created = Trainee.objects.get_or_create(
-            phone_number=phone_number,
-            organization=organization,
-            defaults={"full_name": full_name}
-        )
-
-        # If the trainee existed but name was missing, update
-        if not created and (not trainee.full_name or trainee.full_name.strip() == ""):
-            trainee.full_name = full_name
-            trainee.save()
-
-        # Grant access if not already granted
-        grant, _ = AccessGrant.objects.get_or_create(trainee=trainee, course=course)
-
-        return Response({
-            "access_granted": True,
-            "already_granted": AccessGrant.objects.filter(trainee=trainee, course=course).exists(),
-            "access_expires_at": grant.expires_at
-        })
-
-
-
-# List Views
+# List views
 class OrganizationListView(generics.ListAPIView):
     queryset = Organization.objects.all()
     serializer_class = OrganizationSerializer
