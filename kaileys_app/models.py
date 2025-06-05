@@ -48,6 +48,8 @@ class AccessGrant(models.Model):
     course = models.ForeignKey(Course, on_delete=models.CASCADE)
     access_granted_at = models.DateTimeField(auto_now_add=True)
     expires_at = models.DateTimeField(default=default_expiry)
+    is_approved = models.BooleanField(default=False)
+
 
     def __str__(self):
         return (

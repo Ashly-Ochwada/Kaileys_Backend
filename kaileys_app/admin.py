@@ -48,6 +48,6 @@ class AccessGrantAdmin(admin.ModelAdmin):
     Admin configuration for the AccessGrant model.
     Customizes the list view, filters, and pagination.
     """
-    list_display = ('trainee', 'course', 'access_granted_at', 'expires_at')
-    list_filter = ('course', 'access_granted_at', 'expires_at')
+    list_display = ('trainee', 'course', 'access_granted_at', 'expires_at', 'is_approved')
+    list_filter = ('course', 'access_granted_at', 'expires_at', 'is_approved')
     list_per_page = 25

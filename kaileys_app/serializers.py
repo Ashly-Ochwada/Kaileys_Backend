@@ -42,8 +42,18 @@ class AccessGrantSerializer(serializers.ModelSerializer):
     course_id = serializers.PrimaryKeyRelatedField(
         queryset=Course.objects.all(), source='course', write_only=True
     )
+    is_approved = serializers.BooleanField(read_only=True)  # Show approval status in API
 
     class Meta:
         model = AccessGrant
-        fields = ['id', 'trainee', 'trainee_id', 'course', 'course_id', 'access_granted_at', 'expires_at']
-        read_only_fields = ['access_granted_at']
+        fields = [
+            'id',
+            'trainee',
+            'trainee_id',
+            'course',
+            'course_id',
+            'access_granted_at',
+            'expires_at',
+            'is_approved'
+        ]
+        read_only_fields = ['access_granted_at', 'is_approved']
