@@ -63,11 +63,6 @@ class VerifyAccessView(APIView):
             return Response({"access_granted": False, "error": "User not found."}, status=status.HTTP_404_NOT_FOUND)
 
         try:
-            course = Course.objects.get(name=course_name)
-        except Course.DoesNotExist:
-            return Response({"access_granted": False, "error": "User not found."}, status=status.HTTP_404_NOT_FOUND)
-
-        try:
             trainee = Trainee.objects.get(phone_number=phone_number, organization=organization)
         except Trainee.DoesNotExist:
             return Response(
@@ -76,17 +71,16 @@ class VerifyAccessView(APIView):
             )
 
         try:
+            course = Course.objects.get(name=course_name)
+        except Course.DoesNotExist:
+            return Response({"access_granted": False, "error": "User not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        try:
             grant = AccessGrant.objects.get(trainee=trainee, course=course)
         except AccessGrant.DoesNotExist:
             return Response(
                 {"access_granted": False, "error": "User not found."},
                 status=status.HTTP_404_NOT_FOUND
-            )
-
-        if not grant.is_approved:
-            return Response(
-                {"access_granted": False, "error": "Access pending admin approval. Please wait up to 12 hours."},
-                status=status.HTTP_403_FORBIDDEN
             )
 
         if not grant.expires_at or grant.expires_at < timezone.now():
@@ -100,10 +94,9 @@ class VerifyAccessView(APIView):
             "access_expires_at": grant.expires_at
         })
 
-
 class RegisterTraineeView(APIView):
     """
-    Register a new trainee and grant access to a course, pending admin approval.
+    Register a new trainee and grant access to a course.
     """
     def post(self, request):
         full_name = request.data.get("full_name")
@@ -134,27 +127,60 @@ class RegisterTraineeView(APIView):
             trainee.full_name = full_name
             trainee.save()
 
-        grant, grant_created = AccessGrant.objects.get_or_create(
-            trainee=trainee,
-            course=course,
-            defaults={"is_approved": False}  # Pending approval flag
-        )
-
-        # If already registered but not yet approved
-        if not grant.is_approved:
-            return Response({
-                "access_granted": False,
-                "already_granted": True,
-                "approval_status": "pending",
-                "message": "Already registered. Pending approval."
-            }, status=status.HTTP_202_ACCEPTED)
+        grant, _ = AccessGrant.objects.get_or_create(trainee=trainee, course=course)
 
         return Response({
             "access_granted": True,
-            "already_granted": not grant_created,
-            "access_expires_at": grant.expires_at,
-            "approval_status": "approved"
+            "already_granted": not _,
+            "access_expires_at": grant.expires_at
         })
+
+
+class CheckAccessStatusView(APIView):
+    def get(self, request):
+        phone_number = request.query_params.get('phone_number')
+        course_id = request.query_params.get('course_id')
+
+        if not phone_number or not course_id:
+            return Response(
+                {"access": False, "error": "Missing fields: phone_number and course_id are required"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        if not validate_phone_number(phone_number):
+            return Response(
+                {"access": False, "error": "Invalid phone number."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        try:
+            trainee = Trainee.objects.get(phone_number=phone_number)
+        except Trainee.DoesNotExist:
+            return Response({"access": False, "error": "Trainee not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        try:
+            access = AccessGrant.objects.get(trainee=trainee, course_id=course_id)
+            if access.expires_at > timezone.now():
+                return Response({"access": True, "expires_at": access.expires_at})
+            else:
+                return Response({"access": False, "error": "Access expired."})
+        except AccessGrant.DoesNotExist:
+            return Response({"access": False, "error": "No access grant found."})
+
+
+# List views
+class OrganizationListView(generics.ListAPIView):
+    queryset = Organization.objects.all()
+    serializer_class = OrganizationSerializer
+
+class CourseListView(generics.ListAPIView):
+    queryset = Course.objects.all()
+    serializer_class = CourseSerializer
+
+class TraineeListView(generics.ListAPIView):
+    queryset = Trainee.objects.all()
+    serializer_class = TraineeSerializer
+
 
 class CheckAccessStatusView(APIView):
     def get(self, request):
