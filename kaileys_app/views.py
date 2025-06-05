@@ -34,62 +34,64 @@ class VerifyAccessView(APIView):
     If valid, grant access to the specified course with a 2-year expiry.
     """
     def post(self, request):
-        phone_number = request.data.get('phone_number')
-        organization_name = request.data.get('organization')
-        course_name = request.data.get('course')
+    phone_number = request.data.get('phone_number')
+    organization_name = request.data.get('organization')
+    course_name = request.data.get('course')
 
-        if not phone_number or not organization_name or not course_name:
-            return Response(
-                {"error": "Missing fields: phone_number, organization, and course are required"},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
-        # ✅ Bypass logic for Play Store reviewers
-        if phone_number == "+254724097086":
-            return Response({
-                "access_granted": True,
-                "message": "Test number accepted (bypass active)"
-            })
-
-        # Validate phone number
-        if not self._validate_phone_number(phone_number):
-            return Response(
-                {"error": "Invalid phone number. Must be a valid Kenyan (+254), Ugandan (+256), or Rwandan (+250) number."},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
-        try:
-            organization = Organization.objects.get(name__iexact=organization_name)
-        except Organization.DoesNotExist:
-            return Response({"error": "Organization not found."}, status=status.HTTP_404_NOT_FOUND)
-
-        try:
-            course = Course.objects.get(name=course_name)
-        except Course.DoesNotExist:
-            return Response({"error": "Course not found."}, status=status.HTTP_404_NOT_FOUND)
-
-        # Find or create the trainee
-        trainee, _ = Trainee.objects.get_or_create(
-            phone_number=phone_number,
-            organization=organization
+    if not phone_number or not organization_name or not course_name:
+        return Response(
+            {"error": "Missing fields: phone_number, organization, and course are required"},
+            status=status.HTTP_400_BAD_REQUEST
         )
 
-        # Grant access if not already granted
-        grant, created = AccessGrant.objects.get_or_create(
-            trainee=trainee,
-            course=course
-        )
-
+    if phone_number == "+254724097086":
         return Response({
             "access_granted": True,
-            "already_granted": not created,
-            "access_expires_at": grant.expires_at
+            "message": "Test number accepted (bypass active)"
         })
 
-    def _validate_phone_number(self, phone_number: str) -> bool:
-        """Validate phone number format for Kenyan, Ugandan, or Rwandan numbers."""
-        phone_regex = r"^\+(254|256|250)\d{9}$"
-        return bool(re.match(phone_regex, phone_number))
+    if not self._validate_phone_number(phone_number):
+        return Response(
+            {"error": "Invalid phone number."},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    try:
+        organization = Organization.objects.get(name__iexact=organization_name)
+    except Organization.DoesNotExist:
+        return Response({"error": "Organization not found."}, status=status.HTTP_404_NOT_FOUND)
+
+    try:
+        course = Course.objects.get(name=course_name)
+    except Course.DoesNotExist:
+        return Response({"error": "Course not found."}, status=status.HTTP_404_NOT_FOUND)
+
+    try:
+        trainee = Trainee.objects.get(phone_number=phone_number, organization=organization)
+    except Trainee.DoesNotExist:
+        return Response(
+            {"access_granted": False, "error": "Trainee not registered for this organization."},
+            status=status.HTTP_404_NOT_FOUND
+        )
+
+    try:
+        grant = AccessGrant.objects.get(trainee=trainee, course=course)
+    except AccessGrant.DoesNotExist:
+        return Response(
+            {"access_granted": False, "error": "No access granted for this course."},
+            status=status.HTTP_404_NOT_FOUND
+        )
+
+    if grant.expires_at < timezone.now():
+        return Response(
+            {"access_granted": False, "error": "Access has expired."},
+            status=status.HTTP_403_FORBIDDEN
+        )
+
+    return Response({
+        "access_granted": True,
+        "access_expires_at": grant.expires_at
+    })
 
 
 class CheckAccessStatusView(APIView):
