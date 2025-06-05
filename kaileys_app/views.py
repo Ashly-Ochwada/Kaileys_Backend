@@ -62,26 +62,26 @@ class VerifyAccessView(APIView):
         try:
             organization = Organization.objects.get(name__iexact=organization_name)
         except Organization.DoesNotExist:
-            return Response({"access_granted": False, "error": "Organization not found."}, status=status.HTTP_404_NOT_FOUND)
-
-        try:
-            course = Course.objects.get(name=course_name)
-        except Course.DoesNotExist:
-            return Response({"access_granted": False, "error": "Course not found."}, status=status.HTTP_404_NOT_FOUND)
+            return Response({"access_granted": False, "error": "User not found."}, status=status.HTTP_404_NOT_FOUND)
 
         try:
             trainee = Trainee.objects.get(phone_number=phone_number, organization=organization)
         except Trainee.DoesNotExist:
             return Response(
-                {"access_granted": False, "error": "Trainee not registered for this organization."},
+                {"access_granted": False, "error": "User not found."},
                 status=status.HTTP_404_NOT_FOUND
             )
+
+        try:
+            course = Course.objects.get(name=course_name)
+        except Course.DoesNotExist:
+            return Response({"access_granted": False, "error": "User not found."}, status=status.HTTP_404_NOT_FOUND)
 
         try:
             grant = AccessGrant.objects.get(trainee=trainee, course=course)
         except AccessGrant.DoesNotExist:
             return Response(
-                {"access_granted": False, "error": "No access granted for this course."},
+                {"access_granted": False, "error": "User not found."},
                 status=status.HTTP_404_NOT_FOUND
             )
 
@@ -95,7 +95,6 @@ class VerifyAccessView(APIView):
             "access_granted": True,
             "access_expires_at": grant.expires_at
         })
-
 
 class RegisterTraineeView(APIView):
     """
