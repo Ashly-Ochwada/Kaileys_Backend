@@ -87,7 +87,7 @@ class VerifyAccessView(APIView):
 
         if not grant.is_approved:
             return Response(
-                {"access_granted": False, "error": "Access pending admin approval."},
+                {"access_granted": False, "error": "Access pending admin approval. Please wait up to 12 hours."},
                 status=status.HTTP_403_FORBIDDEN
             )
 
