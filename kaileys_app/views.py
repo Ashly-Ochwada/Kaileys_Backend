@@ -29,6 +29,7 @@ class APIRootView(APIView):
             'courses': reverse('courses', request=request),
             'trainees': reverse('trainees', request=request),
         })
+        
 class VerifyAccessView(APIView):
     """
     Verify if a registered trainee has access to a course.
@@ -182,47 +183,3 @@ class TraineeListView(generics.ListAPIView):
     serializer_class = TraineeSerializer
 
 
-class CheckAccessStatusView(APIView):
-    def get(self, request):
-        phone_number = request.query_params.get('phone_number')
-        course_id = request.query_params.get('course_id')
-
-        if not phone_number or not course_id:
-            return Response(
-                {"access": False, "error": "Missing fields: phone_number and course_id are required"},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
-        if not validate_phone_number(phone_number):
-            return Response(
-                {"access": False, "error": "Invalid phone number."},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
-        try:
-            trainee = Trainee.objects.get(phone_number=phone_number)
-        except Trainee.DoesNotExist:
-            return Response({"access": False, "error": "Trainee not found."}, status=status.HTTP_404_NOT_FOUND)
-
-        try:
-            access = AccessGrant.objects.get(trainee=trainee, course_id=course_id)
-            if access.expires_at > timezone.now():
-                return Response({"access": True, "expires_at": access.expires_at})
-            else:
-                return Response({"access": False, "error": "Access expired."})
-        except AccessGrant.DoesNotExist:
-            return Response({"access": False, "error": "No access grant found."})
-
-
-# List views
-class OrganizationListView(generics.ListAPIView):
-    queryset = Organization.objects.all()
-    serializer_class = OrganizationSerializer
-
-class CourseListView(generics.ListAPIView):
-    queryset = Course.objects.all()
-    serializer_class = CourseSerializer
-
-class TraineeListView(generics.ListAPIView):
-    queryset = Trainee.objects.all()
-    serializer_class = TraineeSerializer
