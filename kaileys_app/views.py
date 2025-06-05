@@ -82,7 +82,7 @@ class VerifyAccessView(APIView):
                 status=status.HTTP_404_NOT_FOUND
             )
 
-        if grant.expires_at < timezone.now():
+        if not grant.expires_at or grant.expires_at < timezone.now():
             return Response(
                 {"access_granted": False, "error": "Access has expired."},
                 status=status.HTTP_403_FORBIDDEN
