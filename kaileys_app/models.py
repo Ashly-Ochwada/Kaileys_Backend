@@ -20,6 +20,7 @@ class Course(models.Model):
         FIRE_SAFETY = "fire_safety", "Fire Safety Training"
         FIRST_AID = "first_aid", "First Aid"
         SAFETY_COMMITTEE = "safety_committee", "Safety and Health Committee Training"
+        CHEMICAL_SAFETY = "chemical_safety", "Chemical Safety"
 
     name = models.CharField(
         max_length=100,
@@ -30,6 +31,7 @@ class Course(models.Model):
 
     def __str__(self):
         return self.get_name_display()
+
 
 class Trainee(models.Model):
     full_name = models.CharField(max_length=255, null=True, blank=True) 
