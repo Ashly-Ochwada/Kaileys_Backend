@@ -15,6 +15,8 @@ class Organization(models.Model):
 
 from django.db import models
 
+from django.db import models
+
 class Course(models.Model):
     from django.db.models import TextChoices
 
@@ -23,7 +25,8 @@ class Course(models.Model):
         FIRST_AID = "first_aid", "First Aid"
         SAFETY_COMMITTEE = "safety_committee", "Safety and Health Committee Training"
         CHEMICAL_SAFETY = "chemical_safety", "Chemical Safety"
-        SCAFFOLDING_SAFETY = "scaffolding_safety", "Scaffolding, Ladder Safety and Work at Height Training"  
+        SCAFFOLDING_SAFETY = "scaffolding_safety", "Scaffolding, Ladder Safety and Work at Height Training"
+        CONFINED_SPACE_SAFETY = "confined_space_safety", "Confined Space Safety"
 
     name = models.CharField(
         max_length=100,
