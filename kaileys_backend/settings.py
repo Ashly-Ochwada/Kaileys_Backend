@@ -105,17 +105,17 @@ WSGI_APPLICATION = 'kaileys_backend.wsgi.application'
 # }
 
 
-# DATABASES = {
-#     'default': dj_database_url.config(conn_max_age=600, ssl_require=True)
-# }
-
 DATABASES = {
-    'default': dj_database_url.config(
-        default=f"sqlite:///{BASE_DIR}/db.sqlite3",
-        conn_max_age=600,
-        ssl_require=not os.environ.get("DEBUG"),
-    )
+    'default': dj_database_url.config(conn_max_age=600, ssl_require=True)
 }
+
+# DATABASES = {
+#     'default': dj_database_url.config(
+#         default=f"sqlite:///{BASE_DIR}/db.sqlite3",
+#         conn_max_age=600,
+#         ssl_require=not os.environ.get("DEBUG"),
+#     )
+# }
 
 
 
