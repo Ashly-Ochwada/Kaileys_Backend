@@ -26,17 +26,17 @@ class KaileysAppConfig(AppConfig):
         Automatically creates a superuser if it does not exist.
         This runs after the app registry and database are ready.
         """
-        try:
-            User = get_user_model()
-            if not User.objects.filter(username='kaileys').exists():
-                User.objects.create_superuser(
-                    username='kaileys',
-                    email='kaileys@gmail.com',
-                    password='kc2025'
-                )
-                print("✅ Superuser 'kaileys' created successfully.")
-            else:
-                print("ℹ️ Superuser 'kaileys' already exists.")
-        except (OperationalError, ProgrammingError) as e:
-            # Avoid errors during migrations or db setup
-            print(f"⚠️ Superuser creation skipped: {e}")
+        # try:
+        #     User = get_user_model()
+        #     if not User.objects.filter(username='kaileys').exists():
+        #         User.objects.create_superuser(
+        #             username='kaileysuser',
+        #             email='kaileystraining@gmail.com',
+        #             password='Kaileys@8429'
+        #         )
+        #         print("✅ Superuser 'kaileys' created successfully.")
+        #     else:
+        #         print("ℹ️ Superuser 'kaileys' already exists.")
+        # except (OperationalError, ProgrammingError) as e:
+        #     # Avoid errors during migrations or db setup
+        #     print(f"⚠️ Superuser creation skipped: {e}")
