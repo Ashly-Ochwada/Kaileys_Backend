@@ -46,8 +46,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework',
-    # 'kaileys_app.apps.KaileysAppConfig',
-    'kaileys_app'
+    'kaileys_app.apps.KaileysAppConfig',
 ]
 
 REST_FRAMEWORK = {
