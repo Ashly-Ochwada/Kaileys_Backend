@@ -1,6 +1,3 @@
-# Kaileys_Backend
-
-Here is a clean backend README you can use:
 
 ````markdown
 # Kaileys Backend
