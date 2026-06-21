@@ -1,5 +1,6 @@
 from rest_framework import serializers
-from .models import Organization, Course, Trainee, AccessGrant
+from .models import Organization, Course, Trainee
+
 
 class OrganizationSerializer(serializers.ModelSerializer):
     class Meta:
@@ -12,48 +13,37 @@ class CourseSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Course
-        fields = ['id', 'name']
+        fields = [
+            'id',
+            'name',
+            'access_code',
+            'access_code_expires_at'
+        ]
 
     def to_representation(self, instance):
-        # Display the human-readable name in the response
         representation = super().to_representation(instance)
-        representation['name'] = dict(Course.CourseChoices.choices).get(representation['name'], representation['name'])
+        representation['name'] = dict(
+            Course.CourseChoices.choices
+        ).get(representation['name'], representation['name'])
         return representation
 
 
 class TraineeSerializer(serializers.ModelSerializer):
-    full_name = serializers.CharField(required=True)  
+    full_name = serializers.CharField(required=True)
     organization = OrganizationSerializer(read_only=True)
+
     organization_id = serializers.PrimaryKeyRelatedField(
-        queryset=Organization.objects.all(), source='organization', write_only=True
+        queryset=Organization.objects.all(),
+        source='organization',
+        write_only=True
     )
 
     class Meta:
         model = Trainee
-        fields = ['id', 'full_name', 'phone_number', 'organization', 'organization_id'] 
-
-
-class AccessGrantSerializer(serializers.ModelSerializer):
-    trainee = TraineeSerializer(read_only=True)
-    course = CourseSerializer(read_only=True)
-    trainee_id = serializers.PrimaryKeyRelatedField(
-        queryset=Trainee.objects.all(), source='trainee', write_only=True
-    )
-    course_id = serializers.PrimaryKeyRelatedField(
-        queryset=Course.objects.all(), source='course', write_only=True
-    )
-    is_approved = serializers.BooleanField(read_only=True)  # Show approval status in API
-
-    class Meta:
-        model = AccessGrant
         fields = [
             'id',
-            'trainee',
-            'trainee_id',
-            'course',
-            'course_id',
-            'access_granted_at',
-            'expires_at',
-            'is_approved'
+            'full_name',
+            'phone_number',
+            'organization',
+            'organization_id'
         ]
-        read_only_fields = ['access_granted_at', 'is_approved']

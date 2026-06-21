@@ -1,10 +1,15 @@
+import uuid
 from django.db import models
 from django.utils import timezone
 from datetime import timedelta
 
-# Default expiry of 2 years for access grants
+
 def default_expiry():
     return timezone.now() + timedelta(days=730)
+
+
+def default_code_expiry():
+    return timezone.now() + timedelta(days=90)
 
 class Organization(models.Model):
     name = models.CharField(max_length=255)
@@ -12,8 +17,6 @@ class Organization(models.Model):
 
     def __str__(self):
         return f"{self.name} ({self.country})"
-
-from django.db import models
 
 from django.db import models
 
@@ -35,31 +38,32 @@ class Course(models.Model):
         db_index=True
     )
 
+    access_code = models.CharField(
+        max_length=12,
+        unique=True,
+        blank=True,
+        null=True
+    )
+
+    access_code_expires_at = models.DateTimeField(
+        default=default_code_expiry
+    )
+
+    def save(self, *args, **kwargs):
+        if not self.access_code:
+            self.access_code = uuid.uuid4().hex[:8].upper()
+        super().save(*args, **kwargs)
+
     def __str__(self):
         return self.get_name_display()
 
 class Trainee(models.Model):
-    full_name = models.CharField(max_length=255, null=True, blank=True) 
+    full_name = models.CharField(max_length=255, null=True, blank=True)
     phone_number = models.CharField(max_length=20, db_index=True)
     organization = models.ForeignKey(Organization, on_delete=models.CASCADE)
-    courses = models.ManyToManyField(Course, through='AccessGrant')
 
     class Meta:
         unique_together = ('phone_number', 'organization')
 
     def __str__(self):
         return f"{self.full_name} ({self.phone_number}, {self.organization.name})"
-
-class AccessGrant(models.Model):
-    trainee = models.ForeignKey(Trainee, on_delete=models.CASCADE)
-    course = models.ForeignKey(Course, on_delete=models.CASCADE)
-    access_granted_at = models.DateTimeField(auto_now_add=True)
-    expires_at = models.DateTimeField(default=default_expiry)
-    is_approved = models.BooleanField(default=False)
-
-
-    def __str__(self):
-        return (
-            f"Access: {self.trainee.phone_number} -> {self.course.name} "
-            f"(expires: {self.expires_at.date()})"
-        )
